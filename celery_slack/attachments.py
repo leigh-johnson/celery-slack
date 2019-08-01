@@ -43,7 +43,15 @@ def get_task_retry_attachment(task_name, exc, task_id, args,
                     for task in cbkwargs["include_tasks"]])):
         STOPWATCH.pop(task_id)
         return
+    elif (cbkwargs["exclude_tasks_retry"] and
+            any([re.search(task, task_name)
+                for task in cbkwargs["exclude_tasks_retry"]])):
+        return     
 
+    initial_retry = add_task_to_retried(task_id)
+    if not initial_retry:
+        return
+    
     message = "RETRYING -- " + task_name.rsplit(".", 1)[-1]
 
     elapsed = divmod(time.time() - STOPWATCH.pop(task_id), 60)

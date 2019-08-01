@@ -52,6 +52,7 @@ DEFAULT_OPTIONS = {
     "include_tasks": None,
     "exclude_tasks": None,
     "failures_only": False,
+    "exclude_tasks_retry": None
     "webhook": None,
     "beat_schedule": None,
     "beat_show_full_task_path": False,

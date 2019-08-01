@@ -118,10 +118,11 @@ def slack_task_retry(**cbkwargs):
             This function is meant to patch app.Task.on_retry where app is an
             instance of a Celery() object, thus it has the same signature.
             """
+
             attachment = get_task_retry_attachment(
                 self.name, exc, task_id, args, kwargs, einfo, **cbkwargs)
 
-            if attachment:
+            if attachment and initial_retry:
                 post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
                 "username": cbkwargs["username"],
                 "icon_emoji": cbkwargs["retry_emoji"],

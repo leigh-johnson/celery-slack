@@ -108,31 +108,31 @@ def slack_task_failure(**cbkwargs):
     return wrapper
 
 def slack_task_retry(**cbkwargs):
-    """Return the task_retry callback."""
-    def slack_task_retry_callback(task_id, task, args, kwargs, **skwargs):
-        """Initialize the task timer.
+    """Wrap the app.Task.on_retry() method with this callback."""
+    def wrapper(func):
 
-        This function connects to the task_retry signal in order to be able to
-        output execution time on tasks.
-        """
+        @wraps(func)
+        def wrapped_func(self, exc, task_id, args, kwargs, einfo):
+            """Post a message to slack for failed task completion.
 
-        # if task already in retry list, pre-run callback should be a no-op
-        # this prevents retry-looping tasks from updating the stopwatch on each retry attempt
-
-        initial_retry = add_task_to_retried(task_id)
-
-        if initial_retry:
-
+            This function is meant to patch app.Task.on_retry where app is an
+            instance of a Celery() object, thus it has the same signature.
+            """
             attachment = get_task_retry_attachment(
-                task_id, task, args, kwargs, **cbkwargs)
+                self.name, exc, task_id, args, kwargs, einfo, **cbkwargs)
 
-            post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
+            if attachment:
+                post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
                 "username": cbkwargs["username"],
                 "icon_emoji": cbkwargs["retry_emoji"],
                 "channel": cbkwargs["channel"],
             })
 
-    return slack_task_retry_callback
+            return func(self, exc, task_id, args, kwargs, einfo)
+
+        return wrapped_func
+
+    return wrapper
 
 def slack_celery_startup(**cbkwargs):
     """Return the celery_startup callback."""

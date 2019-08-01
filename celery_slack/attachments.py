@@ -30,9 +30,9 @@ def add_task_to_stopwatch(task_id):
         STOPWATCH[task_id] = time.time()
         return True
 
-def get_task_retry_attachment(task_id, task, args, kwargs, **cbkwargs):
-    """Create the slack message attachment for a task retry."""
-
+def get_task_retry_attachment(task_name, exc, task_id, args,
+                                kwargs, einfo, **cbkwargs):
+    """Create the slack message attachment for task retry."""
     if (cbkwargs["exclude_tasks"] and
             any([re.search(task, task_name)
                 for task in cbkwargs["exclude_tasks"]])):
@@ -43,11 +43,18 @@ def get_task_retry_attachment(task_id, task, args, kwargs, **cbkwargs):
                     for task in cbkwargs["include_tasks"]])):
         STOPWATCH.pop(task_id)
         return
-    
-    message = "RETRYING -- " + task.name.rsplit(".", 1)[-1]
 
-    lines = ["Name: *" + task.name + "*"]
+    message = "RETRYING -- " + task_name.rsplit(".", 1)[-1]
 
+    elapsed = divmod(time.time() - STOPWATCH.pop(task_id), 60)
+
+    lines = ["Name: *" + task_name + "*"]
+
+    if cbkwargs["show_task_execution_time"]:
+        lines.append("Execution time: {m} minutes {s} seconds".format(
+            m=str(int(elapsed[0])),
+            s=str(int(elapsed[1])),
+        ))
     if cbkwargs["show_task_id"]:
         lines.append("Task ID: " + task_id)
 
@@ -56,20 +63,26 @@ def get_task_retry_attachment(task_id, task, args, kwargs, **cbkwargs):
             lines.append("args: " + "`" + str(args) + "`")
         if cbkwargs["show_task_kwargs"]:
             lines.append("kwargs: " + "`" + str(kwargs) + "`")
+        lines.append("Exception: " + "`" + str(exc) + "`")
+        if cbkwargs["show_task_exception_info"]:
+            lines.append("Info: " + "```" + str(einfo) + "```")
     else:
         if cbkwargs["show_task_args"]:
             lines.append("args: " + str(args))
         if cbkwargs["show_task_kwargs"]:
             lines.append("kwargs: " + str(kwargs))
+        lines.append("Exception: " + str(exc))
+        if cbkwargs["show_task_exception_info"]:
+            lines.append("Info: " + str(einfo))
 
-    executing = "\n".join(lines)
+    retry = "\n".join(lines)
 
     attachment = {
         "attachments": [
             {
                 "fallback": message,
                 "color": cbkwargs["slack_task_retry_color"],
-                "text": executing,
+                "text": retry,
                 "title": message,
                 "mrkdwn_in": ["text"]
             }

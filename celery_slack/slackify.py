@@ -15,6 +15,7 @@ from .callbacks import slack_celery_startup
 from .callbacks import slack_task_failure
 from .callbacks import slack_task_prerun
 from .callbacks import slack_task_success
+from .callbacks import slack_task_retry
 from .exceptions import InvalidColorException
 from .exceptions import MissingWebhookException
 from .exceptions import TaskFiltrationException

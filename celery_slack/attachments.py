@@ -18,7 +18,7 @@ RETRIED = {}
 
 BEAT_DELIMITER = " -> "
 
-def add_task_to_stopwatch(task_id):
+def add_task_to_retried(task_id):
     """Add a task_id to the STOPWATCH dict."""
     if task_id not in RETRIED.keys():
         RETRIED[task_id] = time.time()

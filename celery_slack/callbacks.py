@@ -10,7 +10,7 @@ from .attachments import get_celery_startup_attachment
 from .attachments import get_task_failure_attachment
 from .attachments import get_task_prerun_attachment
 from .attachments import get_task_success_attachment
-from .attachments import add_task_to_stopwatch
+from .attachments import add_task_to_stopwatch, add_task_to_retried
 from .attachments import get_task_retry_attachment
 from .slack import post_to_slack
 

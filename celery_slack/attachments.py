@@ -43,10 +43,10 @@ def get_task_retry_attachment(task_name, exc, task_id, args,
                     for task in cbkwargs["include_tasks"]])):
         STOPWATCH.pop(task_id)
         return    
-    elif cbkwargs["max_msg_count"] and cbkwargs["max_msg_count_include_tasks"] 
-        and (cbkwargs["max_msg_count_include_tasks"] and
-            not any([re.search(task, task_name) and
-        task.request.retries >= cbkwargs["max_msg_count"]:
+    elif (cbkwargs["max_msg_count"] and cbkwargs["max_msg_count_include_tasks"] 
+        and (not any([re.search(task, task_name)
+                    for task in cbkwargs["include_tasks"]])) and
+        task.request.retries >= cbkwargs["max_msg_count"]):
         return
 
     initial_retry = add_task_to_retried(task_id)
@@ -113,10 +113,10 @@ def get_task_prerun_attachment(task_id, task, args, kwargs, **cbkwargs):
                     for task in cbkwargs["include_tasks"]])):
         STOPWATCH.pop(task_id)
         return
-    elif cbkwargs["max_msg_count"] and cbkwargs["max_msg_count_include_tasks"] 
-        and (cbkwargs["max_msg_count_include_tasks"] and
-            not any([re.search(task, task_name) and
-        task.request.retries >= cbkwargs["max_msg_count"]:
+    elif (cbkwargs["max_msg_count"] and cbkwargs["max_msg_count_include_tasks"] 
+        and (not any([re.search(task, task_name)
+                    for task in cbkwargs["include_tasks"]])) and
+        task.request.retries >= cbkwargs["max_msg_count"]):
         return 
     
     message = "Executing -- " + task.name.rsplit(".", 1)[-1]

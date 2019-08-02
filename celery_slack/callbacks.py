@@ -122,7 +122,7 @@ def slack_task_retry(**cbkwargs):
             attachment = get_task_retry_attachment(
                 self.name, exc, task_id, args, kwargs, einfo, **cbkwargs)
 
-            if attachment and initial_retry:
+            if attachment:
                 post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
                 "username": cbkwargs["username"],
                 "icon_emoji": cbkwargs["retry_emoji"],

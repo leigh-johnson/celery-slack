@@ -52,7 +52,6 @@ DEFAULT_OPTIONS = {
     "include_tasks": None,
     "exclude_tasks": None,
     "failures_only": False,
-    "exclude_tasks_retry": None,
     "webhook": None,
     "beat_schedule": None,
     "beat_show_full_task_path": False,
@@ -61,7 +60,9 @@ DEFAULT_OPTIONS = {
     "default_emoji": ":celery:",
     "success_emoji": ":check_green:",
     "failure_emoji": ":red_circle:",
-    "retry_emoji": ":spinner"
+    "retry_emoji": ":spinner",
+    "max_msg_count": None,
+    "max_msg_count_include_tasks": None
 }
 
 COLOR_REGEX = r"^#[a-fA-F0-9]{6}$"

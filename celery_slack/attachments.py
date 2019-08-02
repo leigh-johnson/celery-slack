@@ -45,7 +45,7 @@ def get_task_retry_attachment(task_name, exc, task_id, args,
         return    
     elif (cbkwargs["max_msg_count"] and cbkwargs["max_msg_count_include_tasks"] 
         and (not any([re.search(task, task_name)
-                    for task in cbkwargs["include_tasks"]])) and
+                    for task in cbkwargs["max_msg_count_include_tasks"]])) and
         task.request.retries >= cbkwargs["max_msg_count"]):
         return
 
@@ -115,7 +115,7 @@ def get_task_prerun_attachment(task_id, task, args, kwargs, **cbkwargs):
         return
     elif (cbkwargs["max_msg_count"] and cbkwargs["max_msg_count_include_tasks"] 
         and (not any([re.search(task, task_name)
-                    for task in cbkwargs["include_tasks"]])) and
+                    for task in cbkwargs["max_msg_count_include_tasks"]])) and
         task.request.retries >= cbkwargs["max_msg_count"]):
         return 
     

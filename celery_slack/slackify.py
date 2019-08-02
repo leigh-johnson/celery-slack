@@ -1,4 +1,4 @@
-lal"""Slackify celery."""
+"""Slackify celery."""
 import re
 
 from celery.signals import beat_init

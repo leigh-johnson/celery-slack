@@ -8,8 +8,6 @@ import time
 from billiard.process import current_process
 from celery import __version__ as CELERY_VERSION
 from celery.schedules import crontab
-from celery.result import AsyncResult
-from celery.backends.base import DisabledBackend 
 
 if CELERY_VERSION >= "4.0.0":
     from celery.schedules import solar
@@ -35,25 +33,18 @@ def add_task_to_stopwatch(task_id):
 def get_task_retry_attachment(task_name, exc, task_id, args,
                                 kwargs, einfo, **cbkwargs):
     """Create the slack message attachment for task retry."""
-    result = AsyncResult(task_id)
-    if result.backend is not DisabledBackend:
-        retry_count = result.retries
-    else:
-        retry_count = 0
+
     if (cbkwargs["exclude_tasks"] and
             any([re.search(_task, task_name)
                 for _task in cbkwargs["exclude_tasks"]])):
-        STOPWATCH.pop(task_id)
         return
     elif (cbkwargs["include_tasks"] and
             not any([re.search(_task, task_name)
                     for _task in cbkwargs["include_tasks"]])):
-        STOPWATCH.pop(task_id)
         return    
-    elif (cbkwargs["max_msg_count"] and cbkwargs["max_msg_count_include_tasks"] 
-        and any([re.search(_task, task_name)
-                    for _task in cbkwargs["max_msg_count_include_tasks"]]) and
-        retry_count >= cbkwargs["max_msg_count"]):
+    elif (cbkwargs["exclude_tasks_retry"] and
+            any([re.search(_task, task_name)
+                for _task in cbkwargs["exclude_tasks_retry"]])):
         return
     
     message = "RETRYING -- " + task_name.rsplit(".", 1)[-1]

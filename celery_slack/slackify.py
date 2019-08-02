@@ -1,4 +1,4 @@
-"""Slackify celery."""
+lal"""Slackify celery."""
 import re
 
 from celery.signals import beat_init
@@ -62,7 +62,8 @@ DEFAULT_OPTIONS = {
     "failure_emoji": ":red_circle:",
     "retry_emoji": ":spinner",
     "max_msg_count": None,
-    "max_msg_count_include_tasks": None
+    "max_msg_count_include_tasks": None,
+    "exclude_tasks_retry": None,
 }
 
 COLOR_REGEX = r"^#[a-fA-F0-9]{6}$"

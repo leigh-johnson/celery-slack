@@ -48,10 +48,6 @@ def get_task_retry_attachment(task_name, exc, task_id, args,
                     for task in cbkwargs["max_msg_count_include_tasks"]])) and
         task.request.retries >= cbkwargs["max_msg_count"]):
         return
-
-    initial_retry = add_task_to_retried(task_id)
-    if not initial_retry:
-        return
     
     message = "RETRYING -- " + task_name.rsplit(".", 1)[-1]
 

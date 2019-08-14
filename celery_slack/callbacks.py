@@ -32,12 +32,13 @@ def slack_task_prerun(**cbkwargs):
 
             attachment = get_task_prerun_attachment(
                 task_id, task, args, kwargs, **cbkwargs)
-
-            post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
-                "username": cbkwargs["username"],
-                "icon_emoji": cbkwargs["default_emoji"],
-                "channel": cbkwargs["channel"],
-            })
+            
+            if attachment:
+                post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
+                    "username": cbkwargs["username"],
+                    "icon_emoji": cbkwargs["default_emoji"],
+                    "channel": cbkwargs["channel"],
+                })
 
     return slack_task_prerun_callback
 

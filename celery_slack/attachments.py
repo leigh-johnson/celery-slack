@@ -23,6 +23,69 @@ def add_task_to_stopwatch(task_id):
         STOPWATCH[task_id] = time.time()
         return True
 
+def get_task_retry_attachment(task, exc, task_id, args,
+                                kwargs, einfo, **cbkwargs):
+    """Create the slack message attachment for task retry."""
+    task_name = task.name
+    retry_count = task.request.retries
+
+    if (cbkwargs["exclude_tasks"] and
+            any([re.search(_task, task_name)
+                for _task in cbkwargs["exclude_tasks"]])):
+        return
+    elif (cbkwargs["include_tasks"] and
+            not any([re.search(_task, task_name)
+                    for _task in cbkwargs["include_tasks"]])):
+        return
+    elif (cbkwargs["max_msg_count"] and retry_count >= cbkwargs["max_msg_count"]):
+        return
+    
+    message = "RETRYING -- " + task_name.rsplit(".", 1)[-1]
+
+    lines = ["Name: *" + task_name + "*"]
+
+    if cbkwargs["show_task_id"]:
+        lines.append("Task ID: " + task_id)
+
+    if cbkwargs["use_fixed_width"]:
+        if cbkwargs["show_task_args"]:
+            lines.append("args: " + "`" + str(args) + "`")
+        if cbkwargs["show_task_kwargs"]:
+            lines.append("kwargs: " + "`" + str(kwargs) + "`")
+        lines.append("Exception: " + "`" + str(exc) + "`")
+        if cbkwargs["show_task_exception_info"]:
+            lines.append("Info: " + "```" + str(einfo) + "```")
+    else:
+        if cbkwargs["show_task_args"]:
+            lines.append("args: " + str(args))
+        if cbkwargs["show_task_kwargs"]:
+            lines.append("kwargs: " + str(kwargs))
+        lines.append("Exception: " + str(exc))
+        if cbkwargs["show_task_exception_info"]:
+            lines.append("Info: " + str(einfo))
+
+    retry = "\n".join(lines)
+
+    attachment = {
+        "attachments": [
+            {
+                "fallback": message,
+                "color": cbkwargs["slack_task_retry_color"],
+                "text": retry,
+                "title": message,
+                "mrkdwn_in": ["text"]
+            }
+        ],
+        "text": ""
+    }
+
+    if cbkwargs["flower_base_url"]:
+        attachment["attachments"][0]["title_link"] = (
+            cbkwargs["flower_base_url"] +
+            "/task/{tid}".format(tid=task_id)
+        )
+
+    return attachment
 
 def get_task_prerun_attachment(task_id, task, args, kwargs, **cbkwargs):
     """Create the slack message attachment for a task prerun."""

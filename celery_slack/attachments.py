@@ -45,7 +45,7 @@ def get_task_retry_attachment(task, exc, task_id, args,
     elif (cbkwargs["include_tasks"] and
             not any([re.search(_task, task_name)
                     for _task in cbkwargs["include_tasks"]])):
-        return    
+        return
     elif (cbkwargs["max_msg_count"] and retry_count >= cbkwargs["max_msg_count"]):
         return
     

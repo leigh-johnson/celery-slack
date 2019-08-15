@@ -10,7 +10,8 @@ from .attachments import get_celery_startup_attachment
 from .attachments import get_task_failure_attachment
 from .attachments import get_task_prerun_attachment
 from .attachments import get_task_success_attachment
-from .attachments import add_task_to_stopwatch
+from .attachments import add_task_to_stopwatch, add_task_to_retried
+from .attachments import get_task_retry_attachment
 from .slack import post_to_slack
 
 
@@ -32,12 +33,13 @@ def slack_task_prerun(**cbkwargs):
 
             attachment = get_task_prerun_attachment(
                 task_id, task, args, kwargs, **cbkwargs)
-
-            post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
-                "username": cbkwargs["username"],
-                "icon_emoji": cbkwargs["default_emoji"],
-                "channel": cbkwargs["channel"],
-            })
+            
+            if attachment:
+                post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
+                    "username": cbkwargs["username"],
+                    "icon_emoji": cbkwargs["default_emoji"],
+                    "channel": cbkwargs["channel"],
+                })
 
     return slack_task_prerun_callback
 
@@ -77,6 +79,8 @@ def slack_task_success(**cbkwargs):
     return wrapper
 
 
+
+
 def slack_task_failure(**cbkwargs):
     """Wrap the app.Task.on_failure() method with this callback."""
     def wrapper(func):
@@ -104,6 +108,33 @@ def slack_task_failure(**cbkwargs):
 
     return wrapper
 
+def slack_task_retry(**cbkwargs):
+    """Wrap the app.Task.on_retry() method with this callback."""
+    def wrapper(func):
+
+        @wraps(func)
+        def wrapped_func(self, exc, task_id, args, kwargs, einfo):
+            """Post a message to slack for failed task completion.
+
+            This function is meant to patch app.Task.on_retry where app is an
+            instance of a Celery() object, thus it has the same signature.
+            """
+
+            attachment = get_task_retry_attachment(
+                self, exc, task_id, args, kwargs, einfo, **cbkwargs)
+
+            if attachment:
+                post_to_slack(cbkwargs["webhook"], " ", attachment, payload={
+                "username": cbkwargs["username"],
+                "icon_emoji": cbkwargs["retry_emoji"],
+                "channel": cbkwargs["channel"],
+            })
+
+            return func(self, exc, task_id, args, kwargs, einfo)
+
+        return wrapped_func
+
+    return wrapper
 
 def slack_celery_startup(**cbkwargs):
     """Return the celery_startup callback."""

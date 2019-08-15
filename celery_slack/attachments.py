@@ -8,14 +8,23 @@ import time
 from billiard.process import current_process
 from celery import __version__ as CELERY_VERSION
 from celery.schedules import crontab
+from celery.result import AsyncResult
+from celery.backends.base import DisabledBackend 
 
 if CELERY_VERSION >= "4.0.0":
     from celery.schedules import solar
 
 
 STOPWATCH = {}
+RETRIED = {}
+
 BEAT_DELIMITER = " -> "
 
+def add_task_to_retried(task_id):
+    """Add a task_id to the STOPWATCH dict."""
+    if task_id not in RETRIED.keys():
+        RETRIED[task_id] = time.time()
+        return True
 
 def add_task_to_stopwatch(task_id):
     """Add a task_id to the STOPWATCH dict."""
@@ -23,20 +32,86 @@ def add_task_to_stopwatch(task_id):
         STOPWATCH[task_id] = time.time()
         return True
 
+def get_task_retry_attachment(task, exc, task_id, args,
+                                kwargs, einfo, **cbkwargs):
+    """Create the slack message attachment for task retry."""
+    task_name = task.name
+    retry_count = task.request.retries
+
+    if (cbkwargs["exclude_tasks"] and
+            any([re.search(_task, task_name)
+                for _task in cbkwargs["exclude_tasks"]])):
+        return
+    elif (cbkwargs["include_tasks"] and
+            not any([re.search(_task, task_name)
+                    for _task in cbkwargs["include_tasks"]])):
+        return
+    elif (cbkwargs["max_msg_count"] and retry_count >= cbkwargs["max_msg_count"]):
+        return
+    
+    message = "RETRYING -- " + task_name.rsplit(".", 1)[-1]
+
+    lines = ["Name: *" + task_name + "*"]
+
+    if cbkwargs["show_task_id"]:
+        lines.append("Task ID: " + task_id)
+
+    if cbkwargs["use_fixed_width"]:
+        if cbkwargs["show_task_args"]:
+            lines.append("args: " + "`" + str(args) + "`")
+        if cbkwargs["show_task_kwargs"]:
+            lines.append("kwargs: " + "`" + str(kwargs) + "`")
+        lines.append("Exception: " + "`" + str(exc) + "`")
+        if cbkwargs["show_task_exception_info"]:
+            lines.append("Info: " + "```" + str(einfo) + "```")
+    else:
+        if cbkwargs["show_task_args"]:
+            lines.append("args: " + str(args))
+        if cbkwargs["show_task_kwargs"]:
+            lines.append("kwargs: " + str(kwargs))
+        lines.append("Exception: " + str(exc))
+        if cbkwargs["show_task_exception_info"]:
+            lines.append("Info: " + str(einfo))
+
+    retry = "\n".join(lines)
+
+    attachment = {
+        "attachments": [
+            {
+                "fallback": message,
+                "color": cbkwargs["slack_task_retry_color"],
+                "text": retry,
+                "title": message,
+                "mrkdwn_in": ["text"]
+            }
+        ],
+        "text": ""
+    }
+
+    if cbkwargs["flower_base_url"]:
+        attachment["attachments"][0]["title_link"] = (
+            cbkwargs["flower_base_url"] +
+            "/task/{tid}".format(tid=task_id)
+        )
+
+    return attachment
 
 def get_task_prerun_attachment(task_id, task, args, kwargs, **cbkwargs):
     """Create the slack message attachment for a task prerun."""
 
     if (cbkwargs["exclude_tasks"] and
-            any([re.search(task, task_name)
-                for task in cbkwargs["exclude_tasks"]])):
+            any([re.search(_task, task.name)
+                for _task in cbkwargs["exclude_tasks"]])):
         STOPWATCH.pop(task_id)
         return
     elif (cbkwargs["include_tasks"] and
-            not any([re.search(task, task_name)
-                    for task in cbkwargs["include_tasks"]])):
+            not any([re.search(_task, task.name)
+                    for _task in cbkwargs["include_tasks"]])):
         STOPWATCH.pop(task_id)
         return
+    elif (cbkwargs["max_msg_count"] and 
+        task.request.retries >= cbkwargs["max_msg_count"]):
+        return 
     
     message = "Executing -- " + task.name.rsplit(".", 1)[-1]
 
@@ -100,6 +175,10 @@ def get_task_success_attachment(task_name, retval, task_id,
         retval = str(retval)
 
     message = "SUCCESS -- " + task_name.rsplit(".", 1)[-1]
+    
+    # remove task from RETRIED map if exists to prevent memory growth over time
+    if task_id in RETRIED.keys():
+        RETRIED.pop(task_id)
 
     elapsed = divmod(time.time() - STOPWATCH.pop(task_id), 60)
 
@@ -238,6 +317,10 @@ def get_task_failure_attachment(task_name, exc, task_id, args,
         return
 
     message = "FAILURE -- " + task_name.rsplit(".", 1)[-1]
+
+    # remove task from RETRIED map if exists to prevent memory growth over time
+    if task_id in RETRIED.keys():
+        RETRIED.pop(task_id)
 
     elapsed = divmod(time.time() - STOPWATCH.pop(task_id), 60)
 
